@@ -2,11 +2,17 @@ import { useState, useEffect } from 'react'
 import type { Invoice, BusinessSettings } from './types/invoice'
 import {
   getStoredInvoices,
-  saveStoredInvoices,
   getStoredSettings,
-  saveStoredSettings,
   createNewEmptyInvoice
 } from './utils/storage'
+import {
+  fetchCloudInvoices,
+  saveCloudInvoice,
+  deleteCloudInvoice,
+  fetchCloudSettings,
+  saveCloudSettings
+} from './utils/database'
+import { isSupabaseConfigured, supabase } from './lib/supabase'
 import { InvoiceForm } from './components/InvoiceForm'
 import { InvoicePreview } from './components/InvoicePreview'
 import { ResponsivePreview } from './components/ResponsivePreview'
@@ -20,7 +26,9 @@ import {
   PlusCircle,
   Eye,
   Edit3,
-  Columns
+  Columns,
+  Cloud,
+  HardDrive
 } from 'lucide-react'
 
 export function App() {
@@ -35,18 +43,43 @@ export function App() {
   // Default clean empty invoice ready to fill
   const [currentInvoice, setCurrentInvoice] = useState<Invoice>(createNewEmptyInvoice)
 
-  // Sync to storage on invoice list change
+  // Fetch from cloud on initial load
   useEffect(() => {
-    saveStoredInvoices(invoices)
-  }, [invoices])
+    const loadCloudData = async () => {
+      const cloudInvs = await fetchCloudInvoices()
+      if (cloudInvs && cloudInvs.length > 0) {
+        setInvoices(cloudInvs)
+      }
+      const cloudSet = await fetchCloudSettings()
+      if (cloudSet) {
+        setSettings(cloudSet)
+      }
+    }
+    loadCloudData()
 
-  // Sync to storage on settings change
-  useEffect(() => {
-    saveStoredSettings(settings)
-  }, [settings])
+    // Realtime subscription if Supabase is connected
+    if (isSupabaseConfigured && supabase) {
+      const client = supabase
+      const channel = client
+        .channel('invoices-realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'invoices' },
+          async () => {
+            const updated = await fetchCloudInvoices()
+            setInvoices(updated)
+          }
+        )
+        .subscribe()
 
-  // Save current invoice into the recap list
-  const handleSaveCurrentInvoice = () => {
+      return () => {
+        client.removeChannel(channel)
+      }
+    }
+  }, [])
+
+  // Save current invoice into the recap list & cloud
+  const handleSaveCurrentInvoice = async () => {
     const existingIndex = invoices.findIndex((inv) => inv.id === currentInvoice.id)
     let updatedList: Invoice[]
 
@@ -64,6 +97,8 @@ export function App() {
     }
 
     setInvoices(updatedList)
+    await saveCloudInvoice(invoiceToSave)
+
     setIsSaved(true)
     setTimeout(() => setIsSaved(false), 2500)
   }
@@ -84,9 +119,11 @@ export function App() {
   }
 
   // Delete invoice
-  const handleDeleteInvoice = (id: string) => {
+  const handleDeleteInvoice = async (id: string) => {
     const remaining = invoices.filter((inv) => inv.id !== id)
     setInvoices(remaining)
+    await deleteCloudInvoice(id)
+
     if (currentInvoice.id === id) {
       if (remaining.length > 0) {
         setCurrentInvoice(remaining[0])
@@ -96,12 +133,17 @@ export function App() {
     }
   }
 
+  // Save settings handler
+  const handleSaveSettings = async (newSettings: BusinessSettings) => {
+    setSettings(newSettings)
+    await saveCloudSettings(newSettings)
+  }
+
   // Print action
   const handlePrint = (targetInvoice?: Invoice) => {
     if (targetInvoice) {
       setCurrentInvoice(targetInvoice)
     }
-    // Small timeout so state updates to target invoice before print dialog opens
     setTimeout(() => {
       window.print()
     }, 150)
@@ -133,6 +175,28 @@ export function App() {
               </div>
             </div>
 
+            {/* Cloud Sync Status Indicator */}
+            <div className="hidden lg:flex items-center">
+              {isSupabaseConfigured ? (
+                <div
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[11px] font-semibold"
+                  title="Tersambung ke Supabase. Data tersinkronisasi otomatis antar semua perangkat!"
+                >
+                  <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Cloud Sync Aktif</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                </div>
+              ) : (
+                <div
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px] font-medium"
+                  title="Data tersimpan di browser ini. Hubungkan Supabase untuk sinkron multi-perangkat."
+                >
+                  <HardDrive className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Mode Penyimpanan Lokal</span>
+                </div>
+              )}
+            </div>
+
             {/* Navigation Tabs (Desktop & Tablet) */}
             <div className="hidden sm:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60">
               <button
@@ -158,9 +222,11 @@ export function App() {
               >
                 <BarChart3 className="w-4 h-4 text-indigo-600" />
                 <span>Rekap Data</span>
-                <span className="ml-0.5 px-1.5 py-0.2 bg-indigo-100 text-indigo-700 rounded-full text-[10px]">
-                  {invoices.length}
-                </span>
+                {invoices.length > 0 && (
+                  <span className="ml-0.5 px-1.5 py-0.2 bg-indigo-100 text-indigo-700 rounded-full text-[10px]">
+                    {invoices.length}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -392,7 +458,7 @@ export function App() {
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           settings={settings}
-          onSave={(newSettings) => setSettings(newSettings)}
+          onSave={handleSaveSettings}
         />
       </div>
 
