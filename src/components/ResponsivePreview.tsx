@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import type { Invoice, BusinessSettings } from '../types/invoice'
 import { InvoicePreview } from './InvoicePreview'
-import { ZoomIn, ZoomOut, Maximize2, Minimize2, Eye, Printer } from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize2, Minimize2, Eye, Download } from 'lucide-react'
 
 interface ResponsivePreviewProps {
   invoice: Invoice
@@ -140,8 +140,8 @@ export const ResponsivePreview: React.FC<ResponsivePreviewProps> = ({
             onClick={onPrint}
             className="px-3 py-1.5 bg-slate-900 hover:bg-black text-white font-bold rounded-lg flex items-center gap-1.5 shadow-2xs transition-all text-xs"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Cetak / PDF</span>
+            <Download className="w-3.5 h-3.5" />
+            <span>Unduh PDF</span>
           </button>
         </div>
       </div>
@@ -190,7 +190,7 @@ export const ResponsivePreview: React.FC<ResponsivePreviewProps> = ({
                 onClick={onPrint}
                 className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs flex items-center gap-1.5"
               >
-                <Printer className="w-4 h-4" /> Cetak / PDF
+                <Download className="w-4 h-4" /> Unduh PDF
               </button>
               <button
                 type="button"

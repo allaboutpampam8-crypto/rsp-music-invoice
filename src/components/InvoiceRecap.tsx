@@ -3,7 +3,6 @@ import type { Invoice } from '../types/invoice'
 import { formatRupiah, formatDateIndonesian } from '../utils/formatters'
 import {
   Search,
-  Printer,
   Edit,
   Trash2,
   MessageSquare,
@@ -277,8 +276,9 @@ export const InvoiceRecap: React.FC<InvoiceRecapProps> = ({
                     type="button"
                     onClick={() => onPrintInvoice(inv)}
                     className="py-2 bg-slate-900 hover:bg-black active:scale-95 text-white font-semibold text-xs rounded-xl flex items-center justify-center gap-1 transition-all"
+                    title="Unduh Dokumen PDF"
                   >
-                    <Printer className="w-3.5 h-3.5" />
+                    <Download className="w-3.5 h-3.5" />
                     <span>PDF</span>
                   </button>
                   <button
@@ -392,9 +392,9 @@ export const InvoiceRecap: React.FC<InvoiceRecapProps> = ({
                             type="button"
                             onClick={() => onPrintInvoice(inv)}
                             className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                            title="Cetak / Simpan PDF"
+                            title="Unduh Dokumen PDF"
                           >
-                            <Printer className="w-4 h-4" />
+                            <Download className="w-4 h-4" />
                           </button>
                           <button
                             type="button"

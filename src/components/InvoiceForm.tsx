@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import type { Invoice, InvoiceItem } from '../types/invoice'
 import { generateInvoiceNumber, parseNumber } from '../utils/formatters'
-import { Plus, Trash2, RefreshCw, Sparkles, CheckCircle2, ChevronDown, ChevronUp, Printer } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Sparkles, CheckCircle2, ChevronDown, ChevronUp, Download } from 'lucide-react'
 
 interface InvoiceFormProps {
   invoice: Invoice
@@ -198,10 +198,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
             type="button"
             onClick={onPrint}
             className="h-9 px-3.5 text-xs font-bold bg-slate-900 text-white hover:bg-black active:scale-95 rounded-xl transition-all shadow-2xs flex items-center justify-center gap-1.5"
-            title="Cetak atau Unduh PDF"
+            title="Download Dokumen PDF"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Cetak</span>
+            <Download className="w-3.5 h-3.5" />
+            <span>Unduh PDF</span>
           </button>
         </div>
       </div>

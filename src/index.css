@@ -8,9 +8,15 @@
   }
 }
 
-/* On screen: hide print-only container */
+/* On screen: keep print container mounted and loaded offscreen for instant PDF export */
 #print-invoice-area {
-  display: none;
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 794px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -9999;
 }
 
 /* Page Setup for A4 Printing */
@@ -39,6 +45,11 @@
   /* Show ONLY the direct print area */
   #print-invoice-area {
     display: block !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
     width: 210mm !important;
     min-height: 297mm !important;
     margin: 0 auto !important;

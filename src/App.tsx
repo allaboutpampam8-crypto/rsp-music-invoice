@@ -18,17 +18,19 @@ import { InvoicePreview } from './components/InvoicePreview'
 import { ResponsivePreview } from './components/ResponsivePreview'
 import { InvoiceRecap } from './components/InvoiceRecap'
 import { SettingsModal } from './components/SettingsModal'
+import { downloadInvoicePdf } from './utils/pdfExport'
 import {
   FileText,
   BarChart3,
   Settings,
-  Printer,
   PlusCircle,
   Eye,
   Edit3,
   Columns,
   Cloud,
-  HardDrive
+  HardDrive,
+  Download,
+  Loader2
 } from 'lucide-react'
 
 export function App() {
@@ -139,14 +141,24 @@ export function App() {
     await saveCloudSettings(newSettings)
   }
 
-  // Print action
-  const handlePrint = (targetInvoice?: Invoice) => {
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+
+  // Direct PDF Download action
+  const handleDownloadPdf = async (targetInvoice?: Invoice) => {
+    const inv = targetInvoice || currentInvoice
     if (targetInvoice) {
       setCurrentInvoice(targetInvoice)
     }
-    setTimeout(() => {
-      window.print()
-    }, 150)
+    setIsGeneratingPdf(true)
+    setTimeout(async () => {
+      try {
+        await downloadInvoicePdf(inv)
+      } catch (err) {
+        console.error('Gagal mengunduh PDF:', err)
+      } finally {
+        setIsGeneratingPdf(false)
+      }
+    }, 120)
   }
 
   return (
@@ -250,11 +262,22 @@ export function App() {
               </button>
               <button
                 type="button"
-                onClick={() => handlePrint()}
-                className="px-3.5 py-2 text-xs font-bold bg-slate-900 text-white hover:bg-black active:scale-95 rounded-xl shadow-xs flex items-center gap-1.5 transition-all"
+                onClick={() => handleDownloadPdf()}
+                disabled={isGeneratingPdf}
+                className="px-3.5 py-2 text-xs font-bold bg-slate-900 text-white hover:bg-black active:scale-95 disabled:opacity-75 disabled:pointer-events-none rounded-xl shadow-xs flex items-center gap-1.5 transition-all"
+                title="Download Invoice PDF"
               >
-                <Printer className="w-4 h-4" />
-                <span className="hidden sm:inline">Cetak / PDF</span>
+                {isGeneratingPdf ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span className="hidden sm:inline">Mengunduh...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline">Unduh PDF</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -356,7 +379,7 @@ export function App() {
                     invoice={currentInvoice}
                     onChange={(updated) => setCurrentInvoice(updated)}
                     onSave={handleSaveCurrentInvoice}
-                    onPrint={() => handlePrint()}
+                    onPrint={() => handleDownloadPdf()}
                     onNew={handleNewInvoice}
                     isSaved={isSaved}
                   />
@@ -373,7 +396,7 @@ export function App() {
                   <ResponsivePreview
                     invoice={currentInvoice}
                     settings={settings}
-                    onPrint={() => handlePrint()}
+                    onPrint={() => handleDownloadPdf()}
                   />
                 </div>
               </div>
@@ -385,7 +408,7 @@ export function App() {
                 invoices={invoices}
                 onSelectInvoice={handleSelectFromRecap}
                 onDeleteInvoice={handleDeleteInvoice}
-                onPrintInvoice={(inv) => handlePrint(inv)}
+                onPrintInvoice={(inv) => handleDownloadPdf(inv)}
               />
             </div>
           )}
