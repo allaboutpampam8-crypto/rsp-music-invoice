@@ -65,9 +65,45 @@ export const downloadInvoicePdf = async (invoice: Invoice): Promise<void> => {
 
     pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, undefined, 'FAST')
 
-    const cleanClient = (invoice.clientName || 'Klien').replace(/[^a-zA-Z0-9_-]/g, '_')
-    const cleanNumber = (invoice.invoiceNumber || 'RSP').replace(/[^a-zA-Z0-9_-]/g, '')
-    const filename = `Invoice-RSP-${cleanClient}-${cleanNumber}.pdf`
+    const MONTHS_ID = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ]
+
+    // Format client name: e.g. "Okta" -> "okta"
+    const cleanClient = (invoice.clientName || 'klien')
+      .trim()
+      .replace(/[\s\/\\]+/g, '-')
+      .replace(/[^a-zA-Z0-9_-]/g, '')
+      .toLowerCase() || 'klien'
+
+    // Format date: e.g. "2026-09-02" -> "2-September-2026"
+    let formattedDate = ''
+    if (invoice.eventDate) {
+      const parts = invoice.eventDate.split('-')
+      if (parts.length === 3) {
+        const year = parts[0]
+        const monthIdx = parseInt(parts[1], 10) - 1
+        const day = parseInt(parts[2], 10)
+        if (!isNaN(day) && monthIdx >= 0 && monthIdx < 12) {
+          formattedDate = `${day}-${MONTHS_ID[monthIdx]}-${year}`
+        }
+      }
+      if (!formattedDate) {
+        const d = new Date(invoice.eventDate)
+        if (!isNaN(d.getTime())) {
+          formattedDate = `${d.getDate()}-${MONTHS_ID[d.getMonth()]}-${d.getFullYear()}`
+        }
+      }
+    }
+
+    if (!formattedDate) {
+      const now = new Date()
+      formattedDate = `${now.getDate()}-${MONTHS_ID[now.getMonth()]}-${now.getFullYear()}`
+    }
+
+    // Result example: invoice-okta-2-September-2026.pdf
+    const filename = `invoice-${cleanClient}-${formattedDate}.pdf`
 
     pdf.save(filename)
   } catch (error) {
