@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+}
+
+/* On screen: hide print-only container */
+#print-invoice-area {
+  display: none;
+}
+
+/* Page Setup for A4 Printing */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+/* Print Media Styles: Bulletproof Chromium Printing */
+@media print {
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide the screen app UI completely */
+  #screen-app,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show ONLY the direct print area */
+  #print-invoice-area {
+    display: block !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #print-invoice-area .invoice-paper {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 16mm 18mm !important;
+    transform: none !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+}
