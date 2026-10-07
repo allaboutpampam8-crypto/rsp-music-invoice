@@ -7,31 +7,6 @@ const MONTHS_ID = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ]
 
-// Convert all images in the node to Base64 to prevent tainted canvas in WebKit / Safari iOS
-const inlineImages = async (element: HTMLElement): Promise<void> => {
-  const images = Array.from(element.querySelectorAll('img'))
-  await Promise.all(
-    images.map(async (img) => {
-      try {
-        if (!img.src || img.src.startsWith('data:')) return
-        const response = await fetch(img.src)
-        const blob = await response.blob()
-        await new Promise((resolve) => {
-          const reader = new FileReader()
-          reader.onloadend = () => {
-            img.src = reader.result as string
-            resolve(true)
-          }
-          reader.onerror = () => resolve(true)
-          reader.readAsDataURL(blob)
-        })
-      } catch (err) {
-        console.warn('Gagal inline image ke base64:', img.src, err)
-      }
-    })
-  )
-}
-
 // Generate standard filename: invoice-[client]-[day]-[month]-[year].pdf
 export const generatePdfFilename = (invoice: Invoice): string => {
   const cleanClient = (invoice.clientName || 'klien')
@@ -77,7 +52,7 @@ export const downloadInvoicePdf = async (invoice: Invoice): Promise<void> => {
     return
   }
 
-  // Clone node offscreen with opacity 1 so Safari/WebKit renders properly
+  // Clone node offscreen with opacity 1 so browser renders all elements and colors properly
   const clone = source.cloneNode(true) as HTMLElement
   clone.style.display = 'block'
   clone.style.visibility = 'visible'
@@ -87,7 +62,7 @@ export const downloadInvoicePdf = async (invoice: Invoice): Promise<void> => {
   clone.style.border = 'none'
   clone.style.position = 'fixed'
   clone.style.top = '0px'
-  clone.style.left = '0px'
+  clone.style.left = '-9999px'
   clone.style.width = '794px'
   clone.style.minHeight = '1123px'
   clone.style.zIndex = '-9999'
@@ -97,21 +72,31 @@ export const downloadInvoicePdf = async (invoice: Invoice): Promise<void> => {
   document.body.appendChild(clone)
 
   try {
-    // 1. Inline all images to base64 to avoid Tainted Canvas & CORS issues in iOS Safari
-    await inlineImages(clone)
+    // Wait for all images inside clone to be fully loaded
+    const images = Array.from(clone.querySelectorAll('img'))
+    await Promise.all(
+      images.map(
+        (img) =>
+          new Promise((resolve) => {
+            if (img.complete && img.naturalWidth > 0) {
+              resolve(true)
+            } else {
+              img.onload = () => resolve(true)
+              img.onerror = () => resolve(true)
+            }
+          })
+      )
+    )
 
-    // 2. Render to canvas at high resolution
+    // Render to high-resolution canvas with html2canvas-pro (supports Tailwind v4 oklch & modern CSS)
     const canvas = await html2canvas(clone, {
       scale: 2,
       useCORS: true,
       allowTaint: false,
       logging: false,
-      backgroundColor: '#ffffff',
-      width: 794,
-      windowWidth: 794
+      backgroundColor: '#ffffff'
     })
 
-    // 3. Convert to A4 PDF
     const imgData = canvas.toDataURL('image/png')
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -122,41 +107,9 @@ export const downloadInvoicePdf = async (invoice: Invoice): Promise<void> => {
     pdf.addImage(imgData, 'PNG', 0, 0, 210, 297, undefined, 'FAST')
 
     const filename = generatePdfFilename(invoice)
-    const pdfBlob = pdf.output('blob')
-    const file = new File([pdfBlob], filename, { type: 'application/pdf' })
 
-    // 4. On iOS Safari & Mobile: Use native share/save sheet if available
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: filename
-        })
-        return
-      } catch (shareErr: any) {
-        // If user cancelled iOS share sheet, don't trigger download
-        if (shareErr.name === 'AbortError') {
-          return
-        }
-        console.warn('Share API failed, fallback to anchor download:', shareErr)
-      }
-    }
-
-    // 5. Standard Download via object URL
-    const blobUrl = URL.createObjectURL(pdfBlob)
-    const link = document.createElement('a')
-    link.href = blobUrl
-    link.download = filename
-    link.style.display = 'none'
-    document.body.appendChild(link)
-    link.click()
-
-    setTimeout(() => {
-      if (document.body.contains(link)) {
-        document.body.removeChild(link)
-      }
-      URL.revokeObjectURL(blobUrl)
-    }, 1500)
+    // Direct save PDF file
+    pdf.save(filename)
   } catch (error: any) {
     console.error('Gagal generate PDF:', error)
     alert('Terjadi kendala saat membuat file PDF: ' + (error?.message || 'Gagal memproses dokumen.'))
