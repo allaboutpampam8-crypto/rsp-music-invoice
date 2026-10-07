@@ -11,8 +11,10 @@ const MONTHS_ID = [
 export const generatePdfFilename = (invoice: Invoice): string => {
   const cleanClient = (invoice.clientName || 'klien')
     .trim()
-    .replace(/[\s\/\\]+/g, '-')
-    .replace(/[^a-zA-Z0-9_-]/g, '')
+    .replace(/[\s,/\\_+-]+/g, '-')
+    .replace(/[^a-zA-Z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
     .toLowerCase() || 'klien'
 
   let formattedDate = ''
