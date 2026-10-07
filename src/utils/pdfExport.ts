@@ -52,21 +52,26 @@ export const downloadInvoicePdf = async (invoice: Invoice): Promise<void> => {
     return
   }
 
-  // Clone node offscreen with opacity 1 so browser renders all elements and colors properly
+  // Clone node offscreen with exact A4 dimensions and coordinates (0,0)
   const clone = source.cloneNode(true) as HTMLElement
-  clone.style.display = 'block'
-  clone.style.visibility = 'visible'
-  clone.style.opacity = '1'
-  clone.style.transform = 'none'
-  clone.style.boxShadow = 'none'
-  clone.style.border = 'none'
   clone.style.position = 'fixed'
   clone.style.top = '0px'
-  clone.style.left = '-9999px'
+  clone.style.left = '0px'
   clone.style.width = '794px'
+  clone.style.height = '1123px'
   clone.style.minHeight = '1123px'
-  clone.style.zIndex = '-9999'
+  clone.style.maxHeight = '1123px'
+  clone.style.margin = '0px'
+  clone.style.boxSizing = 'border-box'
+  clone.style.transform = 'none'
+  clone.style.transformOrigin = 'top left'
+  clone.style.overflow = 'hidden'
+  clone.style.boxShadow = 'none'
+  clone.style.border = 'none'
+  clone.style.zIndex = '-999999'
   clone.style.pointerEvents = 'none'
+  clone.style.opacity = '1'
+  clone.style.visibility = 'visible'
   clone.style.backgroundColor = '#ffffff'
   clone.style.color = '#111827'
   document.body.appendChild(clone)
@@ -88,13 +93,21 @@ export const downloadInvoicePdf = async (invoice: Invoice): Promise<void> => {
       )
     )
 
-    // Render to high-resolution canvas with html2canvas-pro (supports Tailwind v4 oklch & modern CSS)
+    // Render to high-resolution canvas with html2canvas-pro with locked A4 window dimensions
     const canvas = await html2canvas(clone, {
       scale: 2,
       useCORS: true,
       allowTaint: false,
       logging: false,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      width: 794,
+      height: 1123,
+      windowWidth: 794,
+      windowHeight: 1123,
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0
     })
 
     const imgData = canvas.toDataURL('image/png')
