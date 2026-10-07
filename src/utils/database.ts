@@ -94,7 +94,7 @@ export const fetchCloudInvoices = async (): Promise<Invoice[]> => {
   return getStoredInvoices()
 }
 
-export const saveCloudInvoice = async (invoice: Invoice): Promise<void> => {
+export const saveCloudInvoice = async (invoice: Invoice): Promise<{ success: boolean; error?: string }> => {
   // Always update local cache first for instant UI response
   const localList = getStoredInvoices()
   const existingIdx = localList.findIndex((i) => i.id === invoice.id)
@@ -107,16 +107,21 @@ export const saveCloudInvoice = async (invoice: Invoice): Promise<void> => {
   }
   saveStoredInvoices(updatedList)
 
-  if (!isSupabaseConfigured || !supabase) return
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: true }
+  }
 
   try {
     const row = mapInvoiceToRow(invoice)
     const { error } = await supabase.from('invoices').upsert(row)
     if (error) {
       console.error('Error saving invoice to Supabase:', error.message)
+      return { success: false, error: error.message }
     }
-  } catch (err) {
+    return { success: true }
+  } catch (err: any) {
     console.error('Error saving invoice to cloud:', err)
+    return { success: false, error: err?.message || 'Gagal koneksi internet' }
   }
 }
 

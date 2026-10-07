@@ -80,6 +80,21 @@ export function App() {
     }
   }, [])
 
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // Refresh data from cloud
+  const handleRefreshData = async () => {
+    setIsRefreshing(true)
+    try {
+      const cloudInvs = await fetchCloudInvoices()
+      if (cloudInvs) {
+        setInvoices(cloudInvs)
+      }
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   // Save current invoice into the recap list & cloud
   const handleSaveCurrentInvoice = async () => {
     const existingIndex = invoices.findIndex((inv) => inv.id === currentInvoice.id)
@@ -99,7 +114,11 @@ export function App() {
     }
 
     setInvoices(updatedList)
-    await saveCloudInvoice(invoiceToSave)
+    const result = await saveCloudInvoice(invoiceToSave)
+
+    if (result && !result.success) {
+      alert(`⚠️ Peringatan: Invoice tersimpan di perangkat ini, namun gagal masuk ke database: ${result.error}`)
+    }
 
     setIsSaved(true)
     setTimeout(() => setIsSaved(false), 2500)
@@ -409,6 +428,8 @@ export function App() {
                 onSelectInvoice={handleSelectFromRecap}
                 onDeleteInvoice={handleDeleteInvoice}
                 onPrintInvoice={(inv) => handleDownloadPdf(inv)}
+                onRefresh={handleRefreshData}
+                isRefreshing={isRefreshing}
               />
             </div>
           )}
